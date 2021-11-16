@@ -129,6 +129,7 @@ spec:
             runAsUser: 65532
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
+            privileged: false
         - name: distributor
           image: {{ .Values.distributor.image.repository }}:{{ .Values.distributor.image.tag | default .Chart.AppVersion }}
           {{- include "control-plane.dist.livenessProbe" . | nindent 10 }}
@@ -146,6 +147,7 @@ spec:
             runAsUser: 65532
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
+            privileged: false
       serviceAccountName: keptn-api-service
 ---
 apiVersion: v1
@@ -264,6 +266,7 @@ spec:
             runAsUser: 65532
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
+            privileged: false
       serviceAccountName: keptn-default
       volumes:
         - emptyDir: {}
@@ -391,6 +394,7 @@ spec:
             runAsUser: 65532
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
+            privileged: false
         - name: distributor
           image: {{ .Values.distributor.image.repository }}:{{ .Values.distributor.image.tag | default .Chart.AppVersion }}
           {{- include "control-plane.dist.livenessProbe" . | nindent 10 }}
@@ -415,6 +419,7 @@ spec:
             runAsUser: 65532
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
+            privileged: false
 ---
 apiVersion: v1
 kind: Service
@@ -542,6 +547,7 @@ spec:
             runAsUser: 65532
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
+            privileged: false
       volumes:
         - name: secret-service-configmap-volume
           configMap:
@@ -681,6 +687,7 @@ spec:
             runAsUser: 65532
             readOnlyRootFilesystem: false # False is necessary because we have to write the git config file
             allowPrivilegeEscalation: false
+            privileged: false
       volumes:
         - name: configuration-volume
           persistentVolumeClaim:
@@ -798,6 +805,7 @@ spec:
             runAsUser: 65532
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
+            privileged: false
         - name: distributor
           image: {{ .Values.distributor.image.repository }}:{{ .Values.distributor.image.tag | default .Chart.AppVersion }}
           {{- include "control-plane.dist.livenessProbe" . | nindent 10 }}
@@ -821,6 +829,7 @@ spec:
             runAsUser: 65532
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
+            privileged: false
 ---
 apiVersion: v1
 kind: Service
@@ -912,6 +921,7 @@ spec:
             runAsUser: 65532
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
+            privileged: false
         - name: distributor
           image: {{ .Values.distributor.image.repository }}:{{ .Values.distributor.image.tag | default .Chart.AppVersion }}
           {{- include "control-plane.dist.livenessProbe" . | nindent 10 }}
@@ -933,6 +943,7 @@ spec:
             runAsUser: 65532
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
+            privileged: false
 ---
 apiVersion: v1
 kind: Service
@@ -1028,6 +1039,7 @@ spec:
             runAsUser: 65532
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
+            privileged: false
         - name: distributor
           image: {{ .Values.distributor.image.repository }}:{{ .Values.distributor.image.tag | default .Chart.AppVersion }}
           {{- include "control-plane.dist.livenessProbe" . | nindent 10 }}
@@ -1051,6 +1063,7 @@ spec:
             runAsUser: 65532
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
+            privileged: false
 ---
 apiVersion: v1
 kind: Service
