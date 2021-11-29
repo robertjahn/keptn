@@ -1,7 +1,8 @@
-package go_tests
+package common
 
 import (
 	"context"
+	"github.com/keptn/keptn/test/go-tests"
 	keptnkubeutils "github.com/keptn/kubernetes-utils/pkg"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -10,18 +11,19 @@ import (
 )
 
 func Test_ManageSecrets_CreateUpdateAndDeleteSecret(t *testing.T) {
+	require.FailNow(t, "Failing on purpose!")
 	k8s, err := keptnkubeutils.GetClientset(false)
 	require.Nil(t, err)
-	var ns = GetKeptnNameSpaceFromEnv()
+	var ns = go_tests.GetKeptnNameSpaceFromEnv()
 	secret1 := "my-new-secret"
 	secret2 := "my-new-secret-2"
 
 	// create secret 1
-	_, err = ExecuteCommandf("keptn create secret %s --from-literal=mykey1=myvalue1", secret1)
+	_, err = go_tests.ExecuteCommandf("keptn create secret %s --from-literal=mykey1=myvalue1", secret1)
 	require.Nil(t, err)
 
 	// create secret 2
-	_, err = ExecuteCommandf("keptn create secret %s --from-literal=mykey2=myvalue2", secret2)
+	_, err = go_tests.ExecuteCommandf("keptn create secret %s --from-literal=mykey2=myvalue2", secret2)
 	require.Nil(t, err)
 
 	// check created k8s secret 1
@@ -35,7 +37,7 @@ func Test_ManageSecrets_CreateUpdateAndDeleteSecret(t *testing.T) {
 	require.Equal(t, "myvalue2", string(k8sSecret2.Data["mykey2"]))
 
 	// update secret 1
-	_, err = ExecuteCommandf("keptn update secret %s --from-literal=mykey1=changed-value", secret1)
+	_, err = go_tests.ExecuteCommandf("keptn update secret %s --from-literal=mykey1=changed-value", secret1)
 	require.Nil(t, err)
 
 	// check update of k8s secret 1
@@ -49,11 +51,11 @@ func Test_ManageSecrets_CreateUpdateAndDeleteSecret(t *testing.T) {
 	require.Contains(t, role.Rules[0].ResourceNames, secret2)
 
 	// delete secret 1
-	_, err = ExecuteCommandf("keptn delete secret %s", secret1)
+	_, err = go_tests.ExecuteCommandf("keptn delete secret %s", secret1)
 	require.Nil(t, err)
 
 	// delete secret 2
-	_, err = ExecuteCommandf("keptn delete secret %s", secret2)
+	_, err = go_tests.ExecuteCommandf("keptn delete secret %s", secret2)
 	require.Nil(t, err)
 
 	// check if associated role was deleted

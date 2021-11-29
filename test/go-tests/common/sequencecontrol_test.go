@@ -1,4 +1,4 @@
-package go_tests
+package common
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	keptncommon "github.com/keptn/go-utils/pkg/lib/keptn"
 	keptnv2 "github.com/keptn/go-utils/pkg/lib/v0_2_0"
 	scmodels "github.com/keptn/keptn/shipyard-controller/models"
+	"github.com/keptn/keptn/test/go-tests"
 	"github.com/stretchr/testify/require"
 	"net/http"
 	"os"
@@ -63,33 +64,33 @@ func Test_SequenceControl_Abort(t *testing.T) {
 	sequencename := "mysequence"
 	source := "golang-test"
 
-	shipyardFilePath, err := CreateTmpShipyardFile(sequenceAbortShipyard)
+	shipyardFilePath, err := go_tests.CreateTmpShipyardFile(sequenceAbortShipyard)
 	require.Nil(t, err)
 	defer os.Remove(shipyardFilePath)
 
 	t.Logf("creating project %s", projectName)
-	err = CreateProject(projectName, shipyardFilePath, true)
+	err = go_tests.CreateProject(projectName, shipyardFilePath, true)
 	require.Nil(t, err)
 
 	t.Logf("creating service %s", serviceName)
-	output, err := ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
+	output, err := go_tests.ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
 
 	require.Nil(t, err)
 	require.Contains(t, output, "created successfully")
 
 	t.Logf("triggering sequence %s in stage %s", sequencename, stageName)
-	keptnContextID, _ := TriggerSequence(projectName, serviceName, stageName, sequencename, nil)
+	keptnContextID, _ := go_tests.TriggerSequence(projectName, serviceName, stageName, sequencename, nil)
 
 	// verify state
-	VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&keptnContextID}, 2*time.Minute, []string{scmodels.SequenceStartedState})
+	go_tests.VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&keptnContextID}, 2*time.Minute, []string{scmodels.SequenceStartedState})
 
-	taskTriggeredEvent, err := GetLatestEventOfType(keptnContextID, projectName, stageName, keptnv2.GetTriggeredEventType("task1"))
+	taskTriggeredEvent, err := go_tests.GetLatestEventOfType(keptnContextID, projectName, stageName, keptnv2.GetTriggeredEventType("task1"))
 	require.Nil(t, err)
 	require.NotNil(t, taskTriggeredEvent)
 
 	cloudEvent := keptnv2.ToCloudEvent(*taskTriggeredEvent)
 
-	keptn, err := keptnv2.NewKeptn(&cloudEvent, keptncommon.KeptnOpts{EventSender: &APIEventSender{}})
+	keptn, err := keptnv2.NewKeptn(&cloudEvent, keptncommon.KeptnOpts{EventSender: &go_tests.APIEventSender{}})
 	require.Nil(t, err)
 	require.NotNil(t, keptn)
 
@@ -97,17 +98,17 @@ func Test_SequenceControl_Abort(t *testing.T) {
 	_, err = keptn.SendTaskStartedEvent(nil, source)
 
 	t.Log("aborting sequence")
-	resp, err := ApiPOSTRequest(fmt.Sprintf("/controlPlane/v1/sequence/%s/%s/control", projectName, keptnContextID), scmodels.SequenceControlCommand{
+	resp, err := go_tests.ApiPOSTRequest(fmt.Sprintf("/controlPlane/v1/sequence/%s/%s/control", projectName, keptnContextID), scmodels.SequenceControlCommand{
 		State: scmodels.AbortSequence,
 		Stage: "",
 	}, 3)
 	require.Nil(t, err)
 	require.Equal(t, http.StatusOK, resp.Response().StatusCode)
 
-	resp, err = ApiGETRequest("/controlPlane/v1/event/triggered/"+keptnv2.GetTriggeredEventType("task1") + "?project=" + projectName, 3)
+	resp, err = go_tests.ApiGETRequest("/controlPlane/v1/event/triggered/"+keptnv2.GetTriggeredEventType("task1")+"?project="+projectName, 3)
 	require.Nil(t, err)
 
-	openTriggeredEvents := &OpenTriggeredEventsResponse{}
+	openTriggeredEvents := &go_tests.OpenTriggeredEventsResponse{}
 	err = resp.ToJSON(openTriggeredEvents)
 	require.Nil(t, err)
 
@@ -118,7 +119,7 @@ func Test_SequenceControl_Abort(t *testing.T) {
 		Result: keptnv2.ResultPass,
 	}, source)
 
-	VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&keptnContextID}, 2*time.Minute, []string{scmodels.SequenceAborted})
+	go_tests.VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&keptnContextID}, 2*time.Minute, []string{scmodels.SequenceAborted})
 
 	require.Nil(t, err)
 }
@@ -130,33 +131,33 @@ func Test_SequenceControl_AbortQueuedSequence(t *testing.T) {
 	sequencename := "mysequence"
 	source := "golang-test"
 
-	shipyardFilePath, err := CreateTmpShipyardFile(sequenceAbortShipyard)
+	shipyardFilePath, err := go_tests.CreateTmpShipyardFile(sequenceAbortShipyard)
 	require.Nil(t, err)
 	defer os.Remove(shipyardFilePath)
 
 	t.Logf("creating project %s", projectName)
-	err = CreateProject(projectName, shipyardFilePath, true)
+	err = go_tests.CreateProject(projectName, shipyardFilePath, true)
 	require.Nil(t, err)
 
 	t.Logf("creating service %s", serviceName)
-	output, err := ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
+	output, err := go_tests.ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
 
 	require.Nil(t, err)
 	require.Contains(t, output, "created successfully")
 
 	t.Logf("triggering sequence %s in stage %s", sequencename, stageName)
-	keptnContextID, _ := TriggerSequence(projectName, serviceName, stageName, sequencename, nil)
+	keptnContextID, _ := go_tests.TriggerSequence(projectName, serviceName, stageName, sequencename, nil)
 
 	// verify state
-	VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&keptnContextID}, 2*time.Minute, []string{scmodels.SequenceStartedState})
+	go_tests.VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&keptnContextID}, 2*time.Minute, []string{scmodels.SequenceStartedState})
 
-	taskTriggeredEvent, err := GetLatestEventOfType(keptnContextID, projectName, stageName, keptnv2.GetTriggeredEventType("task1"))
+	taskTriggeredEvent, err := go_tests.GetLatestEventOfType(keptnContextID, projectName, stageName, keptnv2.GetTriggeredEventType("task1"))
 	require.Nil(t, err)
 	require.NotNil(t, taskTriggeredEvent)
 
 	cloudEvent := keptnv2.ToCloudEvent(*taskTriggeredEvent)
 
-	keptn, err := keptnv2.NewKeptn(&cloudEvent, keptncommon.KeptnOpts{EventSender: &APIEventSender{}})
+	keptn, err := keptnv2.NewKeptn(&cloudEvent, keptncommon.KeptnOpts{EventSender: &go_tests.APIEventSender{}})
 	require.Nil(t, err)
 	require.NotNil(t, keptn)
 
@@ -164,21 +165,21 @@ func Test_SequenceControl_AbortQueuedSequence(t *testing.T) {
 	_, err = keptn.SendTaskStartedEvent(nil, source)
 
 	// trigger a second sequence which should be put in the queue
-	secondContextID, _ := TriggerSequence(projectName, serviceName, stageName, sequencename, nil)
+	secondContextID, _ := go_tests.TriggerSequence(projectName, serviceName, stageName, sequencename, nil)
 
 	// verify state
-	VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&secondContextID}, 2*time.Minute, []string{scmodels.SequenceTriggeredState})
+	go_tests.VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&secondContextID}, 2*time.Minute, []string{scmodels.SequenceTriggeredState})
 
 	// abort the queued sequence
 	t.Log("aborting sequence")
-	resp, err := ApiPOSTRequest(fmt.Sprintf("/controlPlane/v1/sequence/%s/%s/control", projectName, secondContextID), scmodels.SequenceControlCommand{
+	resp, err := go_tests.ApiPOSTRequest(fmt.Sprintf("/controlPlane/v1/sequence/%s/%s/control", projectName, secondContextID), scmodels.SequenceControlCommand{
 		State: scmodels.AbortSequence,
 		Stage: "",
 	}, 3)
 	require.Nil(t, err)
 	require.Equal(t, http.StatusOK, resp.Response().StatusCode)
 
-	VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&secondContextID}, 2*time.Minute, []string{scmodels.SequenceAborted})
+	go_tests.VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&secondContextID}, 2*time.Minute, []string{scmodels.SequenceAborted})
 }
 
 func Test_SequenceControl_PauseAndResume(t *testing.T) {
@@ -188,32 +189,32 @@ func Test_SequenceControl_PauseAndResume(t *testing.T) {
 	sequencename := "mysequence"
 	source := "golang-test"
 
-	shipyardFilePath, err := CreateTmpShipyardFile(sequenceAbortShipyard)
+	shipyardFilePath, err := go_tests.CreateTmpShipyardFile(sequenceAbortShipyard)
 	require.Nil(t, err)
 	defer os.Remove(shipyardFilePath)
 
 	t.Logf("creating project %s", projectName)
-	err = CreateProject(projectName, shipyardFilePath, true)
+	err = go_tests.CreateProject(projectName, shipyardFilePath, true)
 	require.Nil(t, err)
 
 	t.Logf("creating service %s", serviceName)
-	output, err := ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
+	output, err := go_tests.ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
 
 	require.Nil(t, err)
 	require.Contains(t, output, "created successfully")
 
 	t.Logf("triggering sequence %s in stage %s", sequencename, stageName)
-	keptnContextID, _ := TriggerSequence(projectName, serviceName, stageName, sequencename, nil)
+	keptnContextID, _ := go_tests.TriggerSequence(projectName, serviceName, stageName, sequencename, nil)
 
 	// verify state
-	VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&keptnContextID}, 2*time.Minute, []string{scmodels.SequenceStartedState})
+	go_tests.VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&keptnContextID}, 2*time.Minute, []string{scmodels.SequenceStartedState})
 
-	task1TriggeredEvent, err := GetLatestEventOfType(keptnContextID, projectName, stageName, keptnv2.GetTriggeredEventType("task1"))
+	task1TriggeredEvent, err := go_tests.GetLatestEventOfType(keptnContextID, projectName, stageName, keptnv2.GetTriggeredEventType("task1"))
 	require.Nil(t, err)
 	require.NotNil(t, task1TriggeredEvent)
 
 	cloudEvent := keptnv2.ToCloudEvent(*task1TriggeredEvent)
-	keptn, err := keptnv2.NewKeptn(&cloudEvent, keptncommon.KeptnOpts{EventSender: &APIEventSender{}})
+	keptn, err := keptnv2.NewKeptn(&cloudEvent, keptncommon.KeptnOpts{EventSender: &go_tests.APIEventSender{}})
 	require.Nil(t, err)
 	require.NotNil(t, keptn)
 
@@ -221,7 +222,7 @@ func Test_SequenceControl_PauseAndResume(t *testing.T) {
 	keptn.SendTaskStartedEvent(nil, source)
 
 	t.Log("pausing sequence")
-	resp, err := ApiPOSTRequest(fmt.Sprintf("/controlPlane/v1/sequence/%s/%s/control", projectName, keptnContextID), scmodels.SequenceControlCommand{
+	resp, err := go_tests.ApiPOSTRequest(fmt.Sprintf("/controlPlane/v1/sequence/%s/%s/control", projectName, keptnContextID), scmodels.SequenceControlCommand{
 		State: scmodels.PauseSequence,
 		Stage: "",
 	}, 3)
@@ -233,16 +234,16 @@ func Test_SequenceControl_PauseAndResume(t *testing.T) {
 		Result: keptnv2.ResultPass,
 	}, source)
 
-	VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&keptnContextID}, 2*time.Minute, []string{scmodels.SequencePaused})
+	go_tests.VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&keptnContextID}, 2*time.Minute, []string{scmodels.SequencePaused})
 
 	t.Log("verifying that the next task has not being triggered")
 	time.Sleep(5 * time.Second) //sorry, but I don't know how to verify it without a waiting
-	task2TriggeredEvent, err := GetLatestEventOfType(keptnContextID, projectName, "dev", keptnv2.GetTriggeredEventType("task2"))
+	task2TriggeredEvent, err := go_tests.GetLatestEventOfType(keptnContextID, projectName, "dev", keptnv2.GetTriggeredEventType("task2"))
 	require.Nil(t, err)
 	require.Nil(t, task2TriggeredEvent)
 
 	t.Log("resuming sequence")
-	resp, err = ApiPOSTRequest(fmt.Sprintf("/controlPlane/v1/sequence/%s/%s/control", projectName, keptnContextID), scmodels.SequenceControlCommand{
+	resp, err = go_tests.ApiPOSTRequest(fmt.Sprintf("/controlPlane/v1/sequence/%s/%s/control", projectName, keptnContextID), scmodels.SequenceControlCommand{
 		State: scmodels.ResumeSequence,
 		Stage: "",
 	}, 3)
@@ -251,12 +252,12 @@ func Test_SequenceControl_PauseAndResume(t *testing.T) {
 
 	t.Log("verifying that the next task has being triggered")
 	require.Eventually(t, func() bool {
-		task2TriggeredEvent, _ = GetLatestEventOfType(keptnContextID, projectName, stageName, keptnv2.GetTriggeredEventType("task2"))
+		task2TriggeredEvent, _ = go_tests.GetLatestEventOfType(keptnContextID, projectName, stageName, keptnv2.GetTriggeredEventType("task2"))
 		return task2TriggeredEvent != nil
 	}, 20*time.Second, 2*time.Second)
 
 	cloudEvent = keptnv2.ToCloudEvent(*task2TriggeredEvent)
-	keptn, err = keptnv2.NewKeptn(&cloudEvent, keptncommon.KeptnOpts{EventSender: &APIEventSender{}})
+	keptn, err = keptnv2.NewKeptn(&cloudEvent, keptncommon.KeptnOpts{EventSender: &go_tests.APIEventSender{}})
 	require.Nil(t, err)
 	require.NotNil(t, keptn)
 
@@ -264,7 +265,7 @@ func Test_SequenceControl_PauseAndResume(t *testing.T) {
 	keptn.SendTaskStartedEvent(nil, source)
 
 	t.Logf("pausing sequence in stage %s", stageName)
-	resp, err = ApiPOSTRequest(fmt.Sprintf("/controlPlane/v1/sequence/%s/%s/control", projectName, keptnContextID), scmodels.SequenceControlCommand{
+	resp, err = go_tests.ApiPOSTRequest(fmt.Sprintf("/controlPlane/v1/sequence/%s/%s/control", projectName, keptnContextID), scmodels.SequenceControlCommand{
 		State: scmodels.PauseSequence,
 		Stage: stageName,
 	}, 3)
@@ -276,16 +277,16 @@ func Test_SequenceControl_PauseAndResume(t *testing.T) {
 		Result: keptnv2.ResultPass,
 	}, source)
 
-	VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&keptnContextID}, 2*time.Minute, []string{scmodels.SequenceStartedState})
+	go_tests.VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&keptnContextID}, 2*time.Minute, []string{scmodels.SequenceStartedState})
 
 	t.Log("verifying that the next task has not being triggered")
 	time.Sleep(5 * time.Second) //sorry, but I don't know how to verify it without a waiting
-	task3TriggeredEvent, err := GetLatestEventOfType(keptnContextID, projectName, "dev", keptnv2.GetTriggeredEventType("task3"))
+	task3TriggeredEvent, err := go_tests.GetLatestEventOfType(keptnContextID, projectName, "dev", keptnv2.GetTriggeredEventType("task3"))
 	require.Nil(t, err)
 	require.Nil(t, task3TriggeredEvent)
 
 	t.Logf("resuming sequence in stage %s", stageName)
-	resp, err = ApiPOSTRequest(fmt.Sprintf("/controlPlane/v1/sequence/%s/%s/control", projectName, keptnContextID), scmodels.SequenceControlCommand{
+	resp, err = go_tests.ApiPOSTRequest(fmt.Sprintf("/controlPlane/v1/sequence/%s/%s/control", projectName, keptnContextID), scmodels.SequenceControlCommand{
 		State: scmodels.ResumeSequence,
 		Stage: stageName,
 	}, 3)
@@ -294,7 +295,7 @@ func Test_SequenceControl_PauseAndResume(t *testing.T) {
 
 	t.Log("verifying that the next task has being triggered")
 	require.Eventually(t, func() bool {
-		task3TriggeredEvent, _ = GetLatestEventOfType(keptnContextID, projectName, stageName, keptnv2.GetTriggeredEventType("task3"))
+		task3TriggeredEvent, _ = go_tests.GetLatestEventOfType(keptnContextID, projectName, stageName, keptnv2.GetTriggeredEventType("task3"))
 		return task3TriggeredEvent != nil
 	}, 20*time.Second, 2*time.Second)
 }
@@ -306,33 +307,33 @@ func Test_SequenceControl_PauseAndResume_2(t *testing.T) {
 	sequencename := "mysequence"
 	source := "golang-test"
 
-	shipyardFilePath, err := CreateTmpShipyardFile(shipyardWithMultipleStages)
+	shipyardFilePath, err := go_tests.CreateTmpShipyardFile(shipyardWithMultipleStages)
 	require.Nil(t, err)
 	defer os.Remove(shipyardFilePath)
 
 	t.Logf("creating project %s", projectName)
-	err = CreateProject(projectName, shipyardFilePath, true)
+	err = go_tests.CreateProject(projectName, shipyardFilePath, true)
 	require.Nil(t, err)
 
 	t.Logf("creating service %s", serviceName)
-	output, err := ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
+	output, err := go_tests.ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
 
 	require.Nil(t, err)
 	require.Contains(t, output, "created successfully")
 
 	t.Logf("triggering sequence %s in stage %s", sequencename, stageName)
-	keptnContextID, _ := TriggerSequence(projectName, serviceName, stageName, sequencename, nil)
+	keptnContextID, _ := go_tests.TriggerSequence(projectName, serviceName, stageName, sequencename, nil)
 
 	// verify state
-	VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&keptnContextID}, 2*time.Minute, []string{scmodels.SequenceStartedState})
+	go_tests.VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&keptnContextID}, 2*time.Minute, []string{scmodels.SequenceStartedState})
 
 	//TASK 1
-	task1TriggeredEvent, err := GetLatestEventOfType(keptnContextID, projectName, stageName, keptnv2.GetTriggeredEventType("task1"))
+	task1TriggeredEvent, err := go_tests.GetLatestEventOfType(keptnContextID, projectName, stageName, keptnv2.GetTriggeredEventType("task1"))
 	require.Nil(t, err)
 	require.NotNil(t, task1TriggeredEvent)
 
 	cloudEvent := keptnv2.ToCloudEvent(*task1TriggeredEvent)
-	keptn, err := keptnv2.NewKeptn(&cloudEvent, keptncommon.KeptnOpts{EventSender: &APIEventSender{}})
+	keptn, err := keptnv2.NewKeptn(&cloudEvent, keptncommon.KeptnOpts{EventSender: &go_tests.APIEventSender{}})
 	require.Nil(t, err)
 	require.NotNil(t, keptn)
 
@@ -340,7 +341,7 @@ func Test_SequenceControl_PauseAndResume_2(t *testing.T) {
 	keptn.SendTaskStartedEvent(nil, source)
 
 	t.Log("pause sequence")
-	resp, err := ApiPOSTRequest(fmt.Sprintf("/controlPlane/v1/sequence/%s/%s/control", projectName, keptnContextID), scmodels.SequenceControlCommand{
+	resp, err := go_tests.ApiPOSTRequest(fmt.Sprintf("/controlPlane/v1/sequence/%s/%s/control", projectName, keptnContextID), scmodels.SequenceControlCommand{
 		State: scmodels.PauseSequence,
 		Stage: "",
 	}, 3)
@@ -352,18 +353,18 @@ func Test_SequenceControl_PauseAndResume_2(t *testing.T) {
 		Result: keptnv2.ResultPass,
 	}, source)
 
-	VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&keptnContextID}, 2*time.Minute, []string{scmodels.SequencePaused})
+	go_tests.VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&keptnContextID}, 2*time.Minute, []string{scmodels.SequencePaused})
 
-	resp, err = ApiPOSTRequest(fmt.Sprintf("/controlPlane/v1/sequence/%s/%s/control", projectName, keptnContextID), scmodels.SequenceControlCommand{
+	resp, err = go_tests.ApiPOSTRequest(fmt.Sprintf("/controlPlane/v1/sequence/%s/%s/control", projectName, keptnContextID), scmodels.SequenceControlCommand{
 		State: scmodels.ResumeSequence,
 		Stage: "",
 	}, 3)
 	require.Nil(t, err)
 	require.Equal(t, http.StatusOK, resp.Response().StatusCode)
 
-	VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&keptnContextID}, 2*time.Minute, []string{scmodels.SequenceStartedState})
+	go_tests.VerifySequenceEndsUpInState(t, projectName, &models.EventContext{&keptnContextID}, 2*time.Minute, []string{scmodels.SequenceStartedState})
 
-	task2TriggeredEvent, err := GetLatestEventOfType(keptnContextID, projectName, "prod", keptnv2.GetTriggeredEventType("task2"))
+	task2TriggeredEvent, err := go_tests.GetLatestEventOfType(keptnContextID, projectName, "prod", keptnv2.GetTriggeredEventType("task2"))
 	require.Nil(t, err)
 	require.NotNil(t, task2TriggeredEvent)
 }
