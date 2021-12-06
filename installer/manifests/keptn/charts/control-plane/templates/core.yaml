@@ -625,18 +625,8 @@ spec:
     spec:
       securityContext:
         fsGroup: 65532
-      initContainers:
-      - name: change-user-init
-        image: {{ .Values.configurationService.image.repository }}:{{ .Values.configurationService.image.tag | default .Chart.AppVersion }}
-        securityContext:
-          runAsUser: 0
-        volumeMounts:
-          - mountPath: /data/config
-            name: configuration-volume
-        command:
-          - sh
-          - -c
-          - chown -R 65532 /data/config
+        runAsNonRoot: true
+        runAsUser: 65532
       containers:
         - name: configuration-service
           image: {{ .Values.configurationService.image.repository }}:{{ .Values.configurationService.image.tag | default .Chart.AppVersion }}
@@ -679,8 +669,6 @@ spec:
             - mountPath: /data/config
               name: configuration-volume
           securityContext:
-            runAsNonRoot: true
-            runAsUser: 65532
             readOnlyRootFilesystem: false # False is necessary because we have to write the git config file
             allowPrivilegeEscalation: false
       volumes:
