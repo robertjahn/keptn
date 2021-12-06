@@ -563,3 +563,16 @@ func addVersionToMetadata(project string, metadata *models.Version) {
 		metadata.Version = version
 	}
 }
+
+func SetGitConfig(project string) error {
+	projectConfigPath := config.ConfigDir + "/" + project
+	_, err := utils.ExecuteCommandInDirectory("git", []string{"config", "user.email", "keptn@keptn.com"}, projectConfigPath)
+	if err != nil {
+		return err
+	}
+	_, err = utils.ExecuteCommandInDirectory("git", []string{"config", "user.name", "keptn"}, projectConfigPath)
+	if err != nil {
+		return err
+	}
+	return nil
+}
