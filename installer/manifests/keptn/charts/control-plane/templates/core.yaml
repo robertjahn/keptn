@@ -624,9 +624,10 @@ spec:
         helm.sh/chart: {{ include "control-plane.chart" . }}
     spec:
       securityContext:
-        fsGroup: 65532
+        fsGroup: 1001
         runAsNonRoot: true
-        runAsUser: 65532
+        runAsUser: 1001
+        runAsGroup: 1001
       containers:
         - name: configuration-service
           image: {{ .Values.configurationService.image.repository }}:{{ .Values.configurationService.image.tag | default .Chart.AppVersion }}
@@ -671,6 +672,9 @@ spec:
           securityContext:
             readOnlyRootFilesystem: false # False is necessary because we have to write the git config file
             allowPrivilegeEscalation: false
+            runAsGroup: 1001
+            runAsNonRoot: true
+            runAsUser: 1001
       volumes:
         - name: configuration-volume
           persistentVolumeClaim:
