@@ -60,8 +60,7 @@ func PostProjectHandlerFunc(params project.PostProjectParams) middleware.Respond
 		}
 		err = common.SetGitConfig(params.Project.ProjectName)
 		if err != nil {
-			logger.Error(fmt.Sprintf("Could not initialize git repository during creating project %s", params.Project.ProjectName))
-			logger.Error(err.Error())
+			logger.Errorf("Could not set git config for project %s: %v", params.Project.ProjectName, err.Error())
 			rollbackFunc()
 			return project.NewPostProjectBadRequest().WithPayload(&models.Error{Code: http.StatusBadRequest, Message: swag.String("Could not initialize git repo")})
 		}
@@ -84,8 +83,7 @@ func PostProjectHandlerFunc(params project.PostProjectParams) middleware.Respond
 		}
 		err = common.SetGitConfig(params.Project.ProjectName)
 		if err != nil {
-			logger.Error(fmt.Sprintf("Could not initialize git repository during creating project %s", params.Project.ProjectName))
-			logger.Error(err.Error())
+			logger.Errorf("Could not set git config for project %s: %v", params.Project.ProjectName, err.Error())
 			rollbackFunc()
 			return project.NewPostProjectBadRequest().WithPayload(&models.Error{Code: http.StatusBadRequest, Message: swag.String("Could not initialize git repo")})
 		}
