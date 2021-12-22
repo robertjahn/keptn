@@ -520,7 +520,7 @@ jobs:
           KEPTN_ENDPOINT: ${{ steps.authenticate_keptn_cli.outputs.KEPTN_ENDPOINT }}
           UNLEASH_SERVICE_VERSION: "release-0.3.2"
           GOTESTSUM_FORMAT: "testname"
-          GOTESTSUM_JSONFILE: ${{ env.TEST_REPORT_FOLDER }}/common-${{ env.TEST_REPORT_FILENAME_SUFFIX }}
+          GOTESTSUM_JSONFILE: ${{ env.TEST_REPORT_FOLDER }}/tests-${{ env.TEST_REPORT_FILENAME_SUFFIX }}
         run: |
           cd test/go-tests
           
