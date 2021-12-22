@@ -512,7 +512,7 @@ jobs:
       # COMMON TESTS
       ##############
 
-      - name: Common Tests
+      - name: Integration Tests
         id: test_aggregated
         if: env.RUN_AIRGAPPED_TEST != 'true'
         timeout-minutes: 30
@@ -522,7 +522,20 @@ jobs:
           GOTESTSUM_FORMAT: "testname"
           GOTESTSUM_JSONFILE: ${{ env.TEST_REPORT_FOLDER }}/common-${{ env.TEST_REPORT_FILENAME_SUFFIX }}
         run: |
-          cd test/go-tests && gotestsum -- ./common/... -v -timeout 30m
+          cd test/go-tests
+          
+          // Decide on platform testsuite to run
+          if [[ "$CLOUD_PROVIDER" == "minishift-on-GHA" ]]; then
+            TESTSUITE="testsuite_openshift_test.go"
+          elif [[ "$CLOUD_PROVIDER" == "k3s-on-GHA" ]]; then
+            TESTSUITE="testsuite_k3s_test.go"
+          elif [[ "$CLOUD_PROVIDER" == "GKE" ]]; then
+            TESTSUITE="testsuite_gke_test.go"
+          elif [[ "$CLOUD_PROVIDER" == "k3d-on-GHA" ]]; then
+            TESTSUITE="testsuite_k3d_test.go"
+          fi
+          
+          gotestsum -- ./"$TESTSUITE" -v -timeout 30m
 
       #######################################################################
       # PLATFORM SPECIFIC TESTS
