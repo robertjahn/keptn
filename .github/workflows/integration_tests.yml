@@ -687,15 +687,11 @@ jobs:
           test_names=(
             "Keptn Install"
             "Keptn Auth"
-            "Cont Deliv"
-            "Cont Deliv (Remote Exec)"
           )
 
           test_outcomes=(
             "${{ steps.keptn_install.outcome }}"
             "${{ steps.authenticate_keptn_cli.outcome }}"
-            "${{ steps.test_continuous_delivery.outcome }}"
-            "${{ steps.test_continuous_delivery_remote_exec.outcome }}"
           )
 
           for ((i=0; i<${#test_names[@]}; i++)); do
