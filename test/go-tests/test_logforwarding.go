@@ -1,10 +1,9 @@
-package common
+package go_tests
 
 import (
 	"fmt"
 	"github.com/imroc/req"
 	"github.com/keptn/keptn/shipyard-controller/models"
-	"github.com/keptn/keptn/test/go-tests"
 	"github.com/stretchr/testify/require"
 	"net/http"
 	"os"
@@ -34,42 +33,42 @@ func Test_LogForwarding(t *testing.T) {
 	serviceName := "my-service"
 	stageName := "dev"
 	sequenceName := "evaluation"
-	shipyardFilePath, err := go_tests.CreateTmpShipyardFile(logForwardingTestShipyard)
+	shipyardFilePath, err := CreateTmpShipyardFile(logForwardingTestShipyard)
 	require.Nil(t, err)
 	defer os.Remove(shipyardFilePath)
 
 	// check if the project is already available - if not, delete it before creating it again
-	err = go_tests.CreateProject(projectName, shipyardFilePath, true)
+	err = CreateProject(projectName, shipyardFilePath, true)
 	require.Nil(t, err)
 
-	output, err := go_tests.ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
+	output, err := ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
 
 	require.Nil(t, err)
 	require.Contains(t, output, "created successfully")
 
-	keptnContextID, err := go_tests.TriggerSequence(projectName, serviceName, stageName, sequenceName, nil)
+	keptnContextID, err := TriggerSequence(projectName, serviceName, stageName, sequenceName, nil)
 	require.Nil(t, err)
 	require.NotEmpty(t, keptnContextID)
 
 	// verify state
 	require.Eventually(t, func() bool {
-		states, resp, err := go_tests.GetState(projectName)
+		states, resp, err := GetState(projectName)
 		if err != nil {
 			return false
 		}
-		if !go_tests.IsEqual(t, http.StatusOK, resp.Response().StatusCode, "resp.Response().StatusCode") {
+		if !IsEqual(t, http.StatusOK, resp.Response().StatusCode, "resp.Response().StatusCode") {
 			return false
 		}
-		if !go_tests.IsEqual(t, int64(1), states.TotalCount, "states.TotalCount") {
+		if !IsEqual(t, int64(1), states.TotalCount, "states.TotalCount") {
 			return false
 		}
-		if !go_tests.IsEqual(t, 1, len(states.States), "len(states.States)") {
+		if !IsEqual(t, 1, len(states.States), "len(states.States)") {
 			return false
 		}
 
 		state := states.States[0]
 
-		if !go_tests.IsEqual(t, "finished", state.State, "state.State") {
+		if !IsEqual(t, "finished", state.State, "state.State") {
 			return false
 		}
 		return true
@@ -114,7 +113,7 @@ func Test_LogForwarding(t *testing.T) {
 func getIntegrations() ([]*models.Integration, *req.Resp, error) {
 	integrations := []*models.Integration{}
 
-	resp, err := go_tests.ApiGETRequest("/controlPlane/v1/uniform/registration", 3)
+	resp, err := ApiGETRequest("/controlPlane/v1/uniform/registration", 3)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -128,7 +127,7 @@ func getIntegrations() ([]*models.Integration, *req.Resp, error) {
 func getLogs(integrationID string) (*models.GetLogsResponse, *req.Resp, error) {
 	logs := &models.GetLogsResponse{}
 
-	resp, err := go_tests.ApiGETRequest("/controlPlane/v1/log?integrationId="+integrationID, 3)
+	resp, err := ApiGETRequest("/controlPlane/v1/log?integrationId="+integrationID, 3)
 	if err != nil {
 		return nil, nil, err
 	}

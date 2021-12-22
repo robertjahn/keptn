@@ -1,11 +1,10 @@
-package common
+package go_tests
 
 import (
 	"fmt"
 	"github.com/keptn/go-utils/pkg/api/models"
 	keptnv2 "github.com/keptn/go-utils/pkg/lib/v0_2_0"
 	scmodels "github.com/keptn/keptn/shipyard-controller/models"
-	"github.com/keptn/keptn/test/go-tests"
 	"github.com/stretchr/testify/require"
 	"net/http"
 	"os"
@@ -186,7 +185,7 @@ func Test_Webhook(t *testing.T) {
 	stageName := "dev"
 	sequencename := "mysequence"
 
-	shipyardFilePath, err := go_tests.CreateTmpShipyardFile(webhookShipyard)
+	shipyardFilePath, err := CreateTmpShipyardFile(webhookShipyard)
 	require.Nil(t, err)
 	defer func() {
 		err := os.Remove(shipyardFilePath)
@@ -196,17 +195,17 @@ func Test_Webhook(t *testing.T) {
 	}()
 
 	t.Logf("creating project %s", projectName)
-	err = go_tests.CreateProject(projectName, shipyardFilePath, true)
+	err = CreateProject(projectName, shipyardFilePath, true)
 	require.Nil(t, err)
 
 	t.Logf("creating service %s", serviceName)
-	output, err := go_tests.ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
+	output, err := ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
 
 	require.Nil(t, err)
 	require.Contains(t, output, "created successfully")
 
 	// create a secret that should be referenced in the webhook
-	_, err = go_tests.ApiPOSTRequest("/secrets/v1/secret", map[string]interface{}{
+	_, err = ApiPOSTRequest("/secrets/v1/secret", map[string]interface{}{
 		"name":  "my-webhook-k8s-secret",
 		"scope": "keptn-webhook-service",
 		"data": map[string]string{
@@ -224,7 +223,7 @@ func Test_Webhook(t *testing.T) {
 		if strings.HasSuffix(taskType, "-finished") {
 			eventType = keptnv2.GetFinishedEventType(strings.TrimSuffix(taskType, "-finished"))
 		}
-		subscriptionID, err := go_tests.CreateSubscription(t, "webhook-service", models.EventSubscription{
+		subscriptionID, err := CreateSubscription(t, "webhook-service", models.EventSubscription{
 			Event: eventType,
 			Filter: models.EventSubscriptionFilter{
 				Projects: []string{projectName},
@@ -242,7 +241,7 @@ func Test_Webhook(t *testing.T) {
 	<-time.After(20 * time.Second) // sorry :(
 
 	// now, let's add an webhook.yaml file to our service
-	webhookFilePath, err := go_tests.CreateTmpFile("webhook.yaml", webhookYamlWithSubscriptionIDs)
+	webhookFilePath, err := CreateTmpFile("webhook.yaml", webhookYamlWithSubscriptionIDs)
 	require.Nil(t, err)
 	defer func() {
 		err := os.Remove(webhookFilePath)
@@ -252,17 +251,17 @@ func Test_Webhook(t *testing.T) {
 	}()
 
 	t.Log("Adding webhook.yaml to our service")
-	_, err = go_tests.ExecuteCommand(fmt.Sprintf("keptn add-resource --project=%s --service=%s --resource=%s --resourceUri=webhook/webhook.yaml --all-stages", projectName, serviceName, webhookFilePath))
+	_, err = ExecuteCommand(fmt.Sprintf("keptn add-resource --project=%s --service=%s --resource=%s --resourceUri=webhook/webhook.yaml --all-stages", projectName, serviceName, webhookFilePath))
 
 	require.Nil(t, err)
 
 	triggerSequenceAndVerifyTaskFinishedEvent := func(sequencename, taskFinishedType string, verify func(t *testing.T, decodedEvent map[string]interface{})) {
 		t.Logf("triggering sequence %s in stage %s", sequencename, stageName)
-		keptnContextID, _ := go_tests.TriggerSequence(projectName, serviceName, stageName, sequencename, nil)
+		keptnContextID, _ := TriggerSequence(projectName, serviceName, stageName, sequencename, nil)
 
 		var taskFinishedEvent *models.KeptnContextExtendedCE
 		require.Eventually(t, func() bool {
-			taskFinishedEvent, err = go_tests.GetLatestEventOfType(keptnContextID, projectName, stageName, keptnv2.GetFinishedEventType(taskFinishedType))
+			taskFinishedEvent, err = GetLatestEventOfType(keptnContextID, projectName, stageName, keptnv2.GetFinishedEventType(taskFinishedType))
 			if err != nil || taskFinishedEvent == nil {
 				return false
 			}
@@ -279,7 +278,7 @@ func Test_Webhook(t *testing.T) {
 		verify(t, decodedEvent)
 
 		// verify that no <task>.finished.finished event is sent
-		finishedFinishedEvent, err := go_tests.GetLatestEventOfType(keptnContextID, projectName, stageName, keptnv2.GetFinishedEventType("mytask.finished"))
+		finishedFinishedEvent, err := GetLatestEventOfType(keptnContextID, projectName, stageName, keptnv2.GetFinishedEventType("mytask.finished"))
 		require.Nil(t, err)
 		require.Nil(t, finishedFinishedEvent)
 	}
@@ -359,7 +358,7 @@ func Test_Webhook_OverlappingSubscriptions(t *testing.T) {
 	sequencename := "mysequence"
 	taskName := "mytask"
 
-	shipyardFilePath, err := go_tests.CreateTmpShipyardFile(webhookShipyard)
+	shipyardFilePath, err := CreateTmpShipyardFile(webhookShipyard)
 	require.Nil(t, err)
 	defer func() {
 		err := os.Remove(shipyardFilePath)
@@ -369,17 +368,17 @@ func Test_Webhook_OverlappingSubscriptions(t *testing.T) {
 	}()
 
 	t.Logf("creating project %s", projectName)
-	err = go_tests.CreateProject(projectName, shipyardFilePath, true)
+	err = CreateProject(projectName, shipyardFilePath, true)
 	require.Nil(t, err)
 
 	t.Logf("creating service %s", serviceName)
-	output, err := go_tests.ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
+	output, err := ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
 
 	require.Nil(t, err)
 	require.Contains(t, output, "created successfully")
 
 	// create a secret that should be referenced in the webhook
-	_, err = go_tests.ApiPOSTRequest("/secrets/v1/secret", map[string]interface{}{
+	_, err = ApiPOSTRequest("/secrets/v1/secret", map[string]interface{}{
 		"name":  "my-webhook-k8s-secret",
 		"scope": "keptn-webhook-service",
 		"data": map[string]string{
@@ -390,7 +389,7 @@ func Test_Webhook_OverlappingSubscriptions(t *testing.T) {
 
 	// create subscriptions for the webhook-service
 	webhookYamlWithSubscriptionIDs := webhookWithOverlappingSubscriptionsYaml
-	subscriptionID, err := go_tests.CreateSubscription(t, "webhook-service", models.EventSubscription{
+	subscriptionID, err := CreateSubscription(t, "webhook-service", models.EventSubscription{
 		Event: keptnv2.GetTriggeredEventType(taskName),
 		Filter: models.EventSubscriptionFilter{
 			Projects: []string{projectName},
@@ -402,7 +401,7 @@ func Test_Webhook_OverlappingSubscriptions(t *testing.T) {
 	webhookYamlWithSubscriptionIDs = strings.Replace(webhookYamlWithSubscriptionIDs, "${mytask-sub-id}", subscriptionID, -1)
 
 	// create a second subscription that overlaps with the previously created one
-	subscriptionID2, err := go_tests.CreateSubscription(t, "webhook-service", models.EventSubscription{
+	subscriptionID2, err := CreateSubscription(t, "webhook-service", models.EventSubscription{
 		Event: keptnv2.GetTriggeredEventType(taskName),
 		Filter: models.EventSubscriptionFilter{
 			Projects: []string{projectName},
@@ -417,7 +416,7 @@ func Test_Webhook_OverlappingSubscriptions(t *testing.T) {
 	<-time.After(20 * time.Second) // sorry :(
 
 	// now, let's add a webhook.yaml file to our service
-	webhookFilePath, err := go_tests.CreateTmpFile("webhook.yaml", webhookYamlWithSubscriptionIDs)
+	webhookFilePath, err := CreateTmpFile("webhook.yaml", webhookYamlWithSubscriptionIDs)
 	require.Nil(t, err)
 	defer func() {
 		err := os.Remove(webhookFilePath)
@@ -427,16 +426,16 @@ func Test_Webhook_OverlappingSubscriptions(t *testing.T) {
 	}()
 
 	t.Log("Adding webhook.yaml to our service")
-	_, err = go_tests.ExecuteCommand(fmt.Sprintf("keptn add-resource --project=%s --service=%s --resource=%s --resourceUri=webhook/webhook.yaml --all-stages", projectName, serviceName, webhookFilePath))
+	_, err = ExecuteCommand(fmt.Sprintf("keptn add-resource --project=%s --service=%s --resource=%s --resourceUri=webhook/webhook.yaml --all-stages", projectName, serviceName, webhookFilePath))
 
 	require.Nil(t, err)
 
 	t.Logf("triggering sequence %s in stage %s", sequencename, stageName)
-	keptnContextID, _ := go_tests.TriggerSequence(projectName, serviceName, stageName, sequencename, nil)
+	keptnContextID, _ := TriggerSequence(projectName, serviceName, stageName, sequencename, nil)
 
 	var taskFinishedEvent []*models.KeptnContextExtendedCE
 	require.Eventually(t, func() bool {
-		taskFinishedEvent, err = go_tests.GetEventsOfType(keptnContextID, projectName, stageName, keptnv2.GetFinishedEventType(taskName))
+		taskFinishedEvent, err = GetEventsOfType(keptnContextID, projectName, stageName, keptnv2.GetFinishedEventType(taskName))
 		if err != nil || taskFinishedEvent == nil || len(taskFinishedEvent) != 2 {
 			return false
 		}
@@ -451,7 +450,7 @@ func Test_WebhookWithDisabledFinishedEvents(t *testing.T) {
 	stageName := "dev"
 	sequencename := "mysequence"
 
-	shipyardFilePath, err := go_tests.CreateTmpShipyardFile(webhookShipyard)
+	shipyardFilePath, err := CreateTmpShipyardFile(webhookShipyard)
 	require.Nil(t, err)
 	defer func() {
 		err := os.Remove(shipyardFilePath)
@@ -461,17 +460,17 @@ func Test_WebhookWithDisabledFinishedEvents(t *testing.T) {
 	}()
 
 	t.Logf("creating project %s", projectName)
-	err = go_tests.CreateProject(projectName, shipyardFilePath, true)
+	err = CreateProject(projectName, shipyardFilePath, true)
 	require.Nil(t, err)
 
 	t.Logf("creating service %s", serviceName)
-	output, err := go_tests.ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
+	output, err := ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
 
 	require.Nil(t, err)
 	require.Contains(t, output, "created successfully")
 
 	// create a secret that should be referenced in the webhook
-	_, err = go_tests.ApiPOSTRequest("/secrets/v1/secret", map[string]interface{}{
+	_, err = ApiPOSTRequest("/secrets/v1/secret", map[string]interface{}{
 		"name":  "my-webhook-k8s-secret",
 		"scope": "keptn-webhook-service",
 		"data": map[string]string{
@@ -485,7 +484,7 @@ func Test_WebhookWithDisabledFinishedEvents(t *testing.T) {
 
 	webhookYamlWithSubscriptionIDs := webhookWithDisabledFinishedEventsYaml
 	for _, taskType := range taskTypes {
-		subscriptionID, err := go_tests.CreateSubscription(t, "webhook-service", models.EventSubscription{
+		subscriptionID, err := CreateSubscription(t, "webhook-service", models.EventSubscription{
 			Event: keptnv2.GetTriggeredEventType(taskType),
 			Filter: models.EventSubscriptionFilter{
 				Projects: []string{projectName},
@@ -503,7 +502,7 @@ func Test_WebhookWithDisabledFinishedEvents(t *testing.T) {
 	<-time.After(20 * time.Second) // sorry :(
 
 	// now, let's add an webhook.yaml file to our service
-	webhookFilePath, err := go_tests.CreateTmpFile("webhook.yaml", webhookYamlWithSubscriptionIDs)
+	webhookFilePath, err := CreateTmpFile("webhook.yaml", webhookYamlWithSubscriptionIDs)
 	require.Nil(t, err)
 	defer func() {
 		err := os.Remove(webhookFilePath)
@@ -513,17 +512,17 @@ func Test_WebhookWithDisabledFinishedEvents(t *testing.T) {
 	}()
 
 	t.Log("Adding webhook.yaml to our service")
-	_, err = go_tests.ExecuteCommand(fmt.Sprintf("keptn add-resource --project=%s --service=%s --resource=%s --resourceUri=webhook/webhook.yaml --all-stages", projectName, serviceName, webhookFilePath))
+	_, err = ExecuteCommand(fmt.Sprintf("keptn add-resource --project=%s --service=%s --resource=%s --resourceUri=webhook/webhook.yaml --all-stages", projectName, serviceName, webhookFilePath))
 
 	require.Nil(t, err)
 
 	triggerSequenceAndVerifyStartedEvents := func(sequencename, taskName string, nrExpected int) string {
 		t.Logf("triggering sequence %s in stage %s", sequencename, stageName)
-		keptnContextID, _ := go_tests.TriggerSequence(projectName, serviceName, stageName, sequencename, nil)
+		keptnContextID, _ := TriggerSequence(projectName, serviceName, stageName, sequencename, nil)
 
 		var taskStartedEvents []*models.KeptnContextExtendedCE
 		require.Eventually(t, func() bool {
-			taskStartedEvents, err = go_tests.GetEventsOfType(keptnContextID, projectName, stageName, keptnv2.GetStartedEventType(taskName))
+			taskStartedEvents, err = GetEventsOfType(keptnContextID, projectName, stageName, keptnv2.GetStartedEventType(taskName))
 			if err != nil {
 				t.Logf("got error: %s. will try again in a few seconds", err.Error())
 				return false
@@ -545,12 +544,12 @@ func Test_WebhookWithDisabledFinishedEvents(t *testing.T) {
 	<-time.After(5 * time.Second)
 
 	// verify that no .finished event has been sent for 'mytask'
-	taskFinishedEvent, err := go_tests.GetLatestEventOfType(keptnContextID, projectName, stageName, keptnv2.GetFinishedEventType("mytask"))
+	taskFinishedEvent, err := GetLatestEventOfType(keptnContextID, projectName, stageName, keptnv2.GetFinishedEventType("mytask"))
 
 	require.Nil(t, taskFinishedEvent)
 
 	t.Log("verified desired state, aborting sequence")
-	resp, err := go_tests.ApiPOSTRequest(fmt.Sprintf("/controlPlane/v1/sequence/%s/%s/control", projectName, keptnContextID), scmodels.SequenceControlCommand{
+	resp, err := ApiPOSTRequest(fmt.Sprintf("/controlPlane/v1/sequence/%s/%s/control", projectName, keptnContextID), scmodels.SequenceControlCommand{
 		State: scmodels.AbortSequence,
 		Stage: "",
 	}, 3)
@@ -565,7 +564,7 @@ func Test_WebhookWithDisabledFinishedEvents(t *testing.T) {
 	// verify that we have received two .finished events with the status set to fail
 	var taskFinishedEvents []*models.KeptnContextExtendedCE
 	require.Eventually(t, func() bool {
-		taskFinishedEvents, err = go_tests.GetEventsOfType(keptnContextID, projectName, stageName, keptnv2.GetFinishedEventType("othertask"))
+		taskFinishedEvents, err = GetEventsOfType(keptnContextID, projectName, stageName, keptnv2.GetFinishedEventType("othertask"))
 		if err != nil {
 			t.Logf("got error: %s. will try again in a few seconds", err.Error())
 			return false
@@ -596,7 +595,7 @@ func Test_WebhookWithDisabledFinishedEvents(t *testing.T) {
 	<-time.After(5 * time.Second)
 	// verify that we have received one .finished events with the status set to fail
 	require.Eventually(t, func() bool {
-		taskFinishedEvents, err = go_tests.GetEventsOfType(keptnContextID, projectName, stageName, keptnv2.GetFinishedEventType("unallowedtask"))
+		taskFinishedEvents, err = GetEventsOfType(keptnContextID, projectName, stageName, keptnv2.GetFinishedEventType("unallowedtask"))
 		if err != nil {
 			t.Logf("got error: %s. will try again in a few seconds", err.Error())
 			return false

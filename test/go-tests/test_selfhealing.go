@@ -1,11 +1,10 @@
-package common
+package go_tests
 
 import (
 	"fmt"
 	"github.com/keptn/go-utils/pkg/api/models"
 	"github.com/keptn/go-utils/pkg/common/osutils"
 	keptnv2 "github.com/keptn/go-utils/pkg/lib/v0_2_0"
-	"github.com/keptn/keptn/test/go-tests"
 	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
@@ -57,17 +56,17 @@ type RemediationTriggered struct {
 func Test_SelfHealing(t *testing.T) {
 	projectName := "self-healing"
 	serviceName := "my-service"
-	shipyardFilePath, err := go_tests.CreateTmpShipyardFile(selfHealingShipyard)
+	shipyardFilePath, err := CreateTmpShipyardFile(selfHealingShipyard)
 	require.Nil(t, err)
 	defer os.Remove(shipyardFilePath)
 
-	_, err = go_tests.ExecuteCommand(fmt.Sprintf("kubectl delete configmap -n %s lighthouse-config-%s", go_tests.GetKeptnNameSpaceFromEnv(), projectName))
+	_, err = ExecuteCommand(fmt.Sprintf("kubectl delete configmap -n %s lighthouse-config-%s", GetKeptnNameSpaceFromEnv(), projectName))
 	t.Logf("creating project %s", projectName)
-	err = go_tests.CreateProject(projectName, shipyardFilePath, true)
+	err = CreateProject(projectName, shipyardFilePath, true)
 	require.Nil(t, err)
 
 	t.Logf("creating service %s", serviceName)
-	_, err = go_tests.ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
+	_, err = ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
 	require.Nil(t, err)
 
 	// trigger a remediation - this should fail because no remediation.yaml is available yet
@@ -83,20 +82,20 @@ func Test_SelfHealing(t *testing.T) {
 	require.Equal(t, keptnv2.ResultFailed, finishedEventData.Result)
 
 	t.Log("adding remediation.yaml file")
-	remediationFilePath, err := go_tests.CreateTmpFile("remediation-*.yaml", remediationFileContent)
+	remediationFilePath, err := CreateTmpFile("remediation-*.yaml", remediationFileContent)
 	defer os.Remove(remediationFilePath)
 	require.Nil(t, err)
 	require.NotEmpty(t, remediationFilePath)
 
-	_, err = go_tests.ExecuteCommand(fmt.Sprintf("keptn add-resource --project=%s --stage=%s --service=%s --resource=%s --resourceUri=remediation.yaml", projectName, "production", serviceName, remediationFilePath))
+	_, err = ExecuteCommand(fmt.Sprintf("keptn add-resource --project=%s --stage=%s --service=%s --resource=%s --resourceUri=remediation.yaml", projectName, "production", serviceName, remediationFilePath))
 	require.Nil(t, err)
 
 	t.Log("Installing unleash-service")
 	unleashServiceVersion := osutils.GetOSEnvOrDefault(unleashServiceEnvVar, defaultUnleashServiceVersion)
-	_, err = go_tests.ExecuteCommand(fmt.Sprintf("kubectl apply -f \"https://raw.githubusercontent.com/keptn-contrib/unleash-service/%s/deploy/service.yaml\" -n %s", unleashServiceVersion, go_tests.GetKeptnNameSpaceFromEnv()))
+	_, err = ExecuteCommand(fmt.Sprintf("kubectl apply -f \"https://raw.githubusercontent.com/keptn-contrib/unleash-service/%s/deploy/service.yaml\" -n %s", unleashServiceVersion, GetKeptnNameSpaceFromEnv()))
 	require.Nil(t, err)
 
-	err = go_tests.WaitForPodOfDeployment("unleash-service")
+	err = WaitForPodOfDeployment("unleash-service")
 	require.Nil(t, err)
 
 	t.Log("remediation.yaml and unleash-service are ready. let's trigger another remediation")
@@ -113,7 +112,7 @@ func Test_SelfHealing(t *testing.T) {
 	t.Log("verifying if action.triggered event has been sent")
 	var actionTriggered *models.KeptnContextExtendedCE
 	require.Eventually(t, func() bool {
-		event, err := go_tests.GetLatestEventOfType(remediationFinishedEvent.Shkeptncontext, projectName, "production", keptnv2.GetTriggeredEventType(keptnv2.ActionTaskName))
+		event, err := GetLatestEventOfType(remediationFinishedEvent.Shkeptncontext, projectName, "production", keptnv2.GetTriggeredEventType(keptnv2.ActionTaskName))
 		if err != nil || event == nil {
 			return false
 		}
@@ -135,7 +134,7 @@ func Test_SelfHealing(t *testing.T) {
 	t.Log("verifying if action.finished event has been sent")
 	var actionFinished *models.KeptnContextExtendedCE
 	require.Eventually(t, func() bool {
-		event, err := go_tests.GetLatestEventOfType(remediationFinishedEvent.Shkeptncontext, projectName, "production", keptnv2.GetFinishedEventType(keptnv2.ActionTaskName))
+		event, err := GetLatestEventOfType(remediationFinishedEvent.Shkeptncontext, projectName, "production", keptnv2.GetFinishedEventType(keptnv2.ActionTaskName))
 		if err != nil || event == nil {
 			return false
 		}
@@ -149,7 +148,7 @@ func Test_SelfHealing(t *testing.T) {
 }
 
 func performRemediation(t *testing.T, projectName string, serviceName string) *models.KeptnContextExtendedCE {
-	keptnContext, err := go_tests.TriggerSequence(projectName, serviceName, "production", "remediation", &RemediationTriggered{
+	keptnContext, err := TriggerSequence(projectName, serviceName, "production", "remediation", &RemediationTriggered{
 		Problem: keptnv2.ProblemDetails{
 			RootCause:    "Response time degradation",
 			ProblemTitle: "My Problem",
@@ -162,7 +161,7 @@ func performRemediation(t *testing.T, projectName string, serviceName string) *m
 	t.Log("waiting for remediation.finished event to be available")
 	var remediationFinishedEvent *models.KeptnContextExtendedCE
 	require.Eventually(t, func() bool {
-		event, err := go_tests.GetLatestEventOfType(keptnContext, projectName, "production", keptnv2.GetFinishedEventType("production.remediation"))
+		event, err := GetLatestEventOfType(keptnContext, projectName, "production", keptnv2.GetFinishedEventType("production.remediation"))
 		if err != nil || event == nil {
 			return false
 		}

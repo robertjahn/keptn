@@ -1,4 +1,4 @@
-package common
+package go_tests
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 	"github.com/keptn/go-utils/pkg/api/models"
 	keptnv2 "github.com/keptn/go-utils/pkg/lib/v0_2_0"
 	scmodels "github.com/keptn/keptn/shipyard-controller/models"
-	"github.com/keptn/keptn/test/go-tests"
 	"github.com/stretchr/testify/require"
 	"net/http"
 	"os"
@@ -50,18 +49,18 @@ spec:
 func Test_SequenceTimeout(t *testing.T) {
 	projectName := "sequence-timeout"
 	serviceName := "my-service"
-	sequenceStateShipyardFilePath, err := go_tests.CreateTmpShipyardFile(sequenceTimeoutShipyard)
+	sequenceStateShipyardFilePath, err := CreateTmpShipyardFile(sequenceTimeoutShipyard)
 	require.Nil(t, err)
 	defer os.Remove(sequenceStateShipyardFilePath)
 
 	source := "golang-test"
 
 	t.Logf("creating project %s", projectName)
-	err = go_tests.CreateProject(projectName, sequenceStateShipyardFilePath, true)
+	err = CreateProject(projectName, sequenceStateShipyardFilePath, true)
 	require.Nil(t, err)
 
 	t.Logf("creating service %s", serviceName)
-	output, err := go_tests.ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
+	output, err := ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
 
 	require.Nil(t, err)
 	require.Contains(t, output, "created successfully")
@@ -76,7 +75,7 @@ func Test_SequenceTimeout(t *testing.T) {
 
 	// trigger the task sequence
 	t.Log("starting task sequence")
-	resp, err := go_tests.ApiPOSTRequest("/v1/event", models.KeptnContextExtendedCE{
+	resp, err := ApiPOSTRequest("/v1/event", models.KeptnContextExtendedCE{
 		Contenttype: "application/json",
 		Data: keptnv2.DeploymentTriggeredEventData{
 			EventData: keptnv2.EventData{
@@ -89,7 +88,7 @@ func Test_SequenceTimeout(t *testing.T) {
 			},
 		},
 		ID:                 uuid.NewString(),
-		Shkeptnspecversion: go_tests.KeptnSpecVersion,
+		Shkeptnspecversion: KeptnSpecVersion,
 		Source:             &source,
 		Specversion:        "1.0",
 		Type:               &eventType,
@@ -106,23 +105,23 @@ func Test_SequenceTimeout(t *testing.T) {
 
 	// wait for the recreated state to be available
 	t.Logf("waiting for state with keptnContext %s to have the status %s", *context.KeptnContext, scmodels.TimedOut)
-	go_tests.VerifySequenceEndsUpInState(t, projectName, context, 2*time.Minute, []string{scmodels.TimedOut})
+	VerifySequenceEndsUpInState(t, projectName, context, 2*time.Minute, []string{scmodels.TimedOut})
 	t.Log("received the expected state!")
 }
 
 func Test_SequenceTimeoutDelayedTask(t *testing.T) {
 	projectName := "sequence-timeout-delay"
 	serviceName := "my-service"
-	sequenceStateShipyardFilePath, err := go_tests.CreateTmpShipyardFile(sequenceTimeoutWithTriggeredAfterShipyard)
+	sequenceStateShipyardFilePath, err := CreateTmpShipyardFile(sequenceTimeoutWithTriggeredAfterShipyard)
 	require.Nil(t, err)
 	defer os.Remove(sequenceStateShipyardFilePath)
 
 	t.Logf("creating project %s", projectName)
-	err = go_tests.CreateProject(projectName, sequenceStateShipyardFilePath, true)
+	err = CreateProject(projectName, sequenceStateShipyardFilePath, true)
 	require.Nil(t, err)
 
 	t.Logf("creating service %s", serviceName)
-	output, err := go_tests.ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
+	output, err := ExecuteCommand(fmt.Sprintf("keptn create service %s --project=%s", serviceName, projectName))
 
 	require.Nil(t, err)
 	require.Contains(t, output, "created successfully")
@@ -135,18 +134,18 @@ func Test_SequenceTimeoutDelayedTask(t *testing.T) {
 
 	// trigger the task sequence
 	t.Log("starting task sequence")
-	keptnContextID, err := go_tests.TriggerSequence(projectName, serviceName, "dev", "delivery", nil)
+	keptnContextID, err := TriggerSequence(projectName, serviceName, "dev", "delivery", nil)
 	require.Nil(t, err)
 
 	// wait a minute and make verify that the sequence has not been timed out
 	<-time.After(30 * time.Second)
 
 	// also, the unknown.triggered event should not have been sent yet
-	triggeredEvent, err := go_tests.GetLatestEventOfType(keptnContextID, projectName, "dev", keptnv2.GetTriggeredEventType("unknown"))
+	triggeredEvent, err := GetLatestEventOfType(keptnContextID, projectName, "dev", keptnv2.GetTriggeredEventType("unknown"))
 	require.Nil(t, err)
 	require.Nil(t, triggeredEvent)
 
-	states, _, err := go_tests.GetState(projectName)
+	states, _, err := GetState(projectName)
 	require.Nil(t, err)
 
 	require.Len(t, states.States, 1)
@@ -156,7 +155,7 @@ func Test_SequenceTimeoutDelayedTask(t *testing.T) {
 
 	// after some time, the unknown.triggered event should be available
 	require.Eventually(t, func() bool {
-		triggeredEvent, err := go_tests.GetLatestEventOfType(keptnContextID, projectName, "dev", keptnv2.GetTriggeredEventType("unknown"))
+		triggeredEvent, err := GetLatestEventOfType(keptnContextID, projectName, "dev", keptnv2.GetTriggeredEventType("unknown"))
 		if err != nil {
 			return false
 		}
@@ -169,5 +168,5 @@ func Test_SequenceTimeoutDelayedTask(t *testing.T) {
 }
 
 func setShipyardControllerTaskTimeout(t *testing.T, timeoutValue string) error {
-	return go_tests.SetShipyardControllerEnvVar(t, "TASK_STARTED_WAIT_DURATION", timeoutValue)
+	return SetShipyardControllerEnvVar(t, "TASK_STARTED_WAIT_DURATION", timeoutValue)
 }
