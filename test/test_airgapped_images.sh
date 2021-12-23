@@ -12,6 +12,7 @@ EXPECTED_REGISTRY=${1}
 KEPTN_NAMESPACE=${KEPTN_NAMESPACE:-keptn}
 
 PULLED_IMAGES=$(kubectl get events -n "${KEPTN_NAMESPACE}" | awk -F'Pulling image ' '{ print $2 }' | xargs)
+PULLED_IMAGES=$(kubectl get pods -n "${KEPTN_NAMESPACE}" -o jsonpath="{.items[*].spec.containers[*].image}")
 
 
 for IMAGE in ${PULLED_IMAGES}; do

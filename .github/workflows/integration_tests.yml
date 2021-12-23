@@ -484,6 +484,7 @@ jobs:
           GOTESTSUM_FORMAT: "testname"
           GOTESTSUM_JSONFILE: ${{ env.TEST_REPORT_FOLDER }}/tests-${{ env.TEST_REPORT_FILENAME_SUFFIX }}
           CLOUD_PROVIDER: ${{ env.CLOUD_PROVIDER }}
+          AIRGAPPED_REGISTRY_URL: "k3d-container-registry.localhost:12345"
         run: |
           cd test/go-tests
           
@@ -499,15 +500,6 @@ jobs:
           fi
           
           gotestsum -- -run "$TESTSUITE" -v -timeout 30m
-
-      #######################################################################
-      # PLATFORM SPECIFIC TESTS
-      ##############
-      - name: Test Airgapped Images
-        id: test_airgapped_images
-        if: env.RUN_AIRGAPPED_TEST == 'true'
-        timeout-minutes: 2
-        run: test/test_airgapped_images.sh "k3d-container-registry.localhost:12345"
 
       - name: "------- TESTS END -------"
         run: echo "------- TESTS END -------"
@@ -713,6 +705,7 @@ jobs:
           run_id: ${{ needs.integration-test.outputs.ARTIFACT_RUN_ID }}
           # directory where to extract artifacts to
           path: ./dist
+          # TODO: only the build config is really needed here
 
       - name: Load Build-Config Environment from ./dist/build-config/build-config.env
         id: load_build_env
