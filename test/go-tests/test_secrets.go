@@ -10,7 +10,6 @@ import (
 )
 
 func Test_ManageSecrets_CreateUpdateAndDeleteSecret(t *testing.T) {
-	require.FailNow(t, "Failing on purpose!")
 	k8s, err := keptnkubeutils.GetClientset(false)
 	require.Nil(t, err)
 	var ns = GetKeptnNameSpaceFromEnv()
