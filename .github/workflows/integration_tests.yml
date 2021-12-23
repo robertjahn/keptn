@@ -489,16 +489,16 @@ jobs:
           
           # Decide on platform testsuite to run
           if [[ "$CLOUD_PROVIDER" == "minishift-on-GHA" ]]; then
-            TESTSUITE="testsuite_openshift_test.go"
+            TESTSUITE="Test_Openshift"
           elif [[ "$CLOUD_PROVIDER" == "k3s-on-GHA" ]]; then
-            TESTSUITE="testsuite_k3s_test.go"
+            TESTSUITE="Test_K3S"
           elif [[ "$CLOUD_PROVIDER" == "GKE" ]]; then
-            TESTSUITE="testsuite_gke_test.go"
+            TESTSUITE="Test_GKE"
           elif [[ "$CLOUD_PROVIDER" == "k3d-on-GHA" ]]; then
-            TESTSUITE="testsuite_k3d_test.go"
+            TESTSUITE="Test_K3D"
           fi
           
-          gotestsum -- ./"$TESTSUITE" -v -timeout 30m
+          gotestsum -- -run ./"$TESTSUITE" -v -timeout 30m
 
       #######################################################################
       # PLATFORM SPECIFIC TESTS
