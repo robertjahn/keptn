@@ -498,7 +498,7 @@ jobs:
             TESTSUITE="Test_K3D"
           fi
           
-          gotestsum -- -run ./"$TESTSUITE" -v -timeout 30m
+          gotestsum -- -run "$TESTSUITE" -v -timeout 30m
 
       #######################################################################
       # PLATFORM SPECIFIC TESTS
