@@ -19,6 +19,11 @@ func Test_AirgappedImagesAreSetCorrectly(t *testing.T) {
 	keptnImages := strings.Split(out, " ")
 
 	for _, image := range keptnImages {
+		if strings.HasPrefix(image, "rancher/") {
+			// Built-in k3s images don't need to be checked
+			continue
+		}
+
 		require.Contains(t, image, airgappedRegistryUrl)
 	}
 }
