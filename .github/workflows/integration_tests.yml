@@ -576,8 +576,8 @@ jobs:
           report_template='{"test":$test_name, "${{ matrix.CLOUD_PROVIDER}}-${{ matrix.PLATFORM_VERSION }}":$test_outcome}'
 
           test_names=(
-            "Keptn Install"
-            "Keptn Auth"
+            "${{ matrix.CLOUD_PROVIDER}}-${{ matrix.PLATFORM_VERSION }}/Keptn Install"
+            "${{ matrix.CLOUD_PROVIDER}}-${{ matrix.PLATFORM_VERSION }}/Keptn Auth"
           )
 
           test_outcomes=(
@@ -624,9 +624,9 @@ jobs:
     env:
       BRANCH: ${{ needs.integration-test.outputs.BRANCH }}
       TEST_REPORTS_PATH: "./test-reports/"
-      FINAL_TEST_REPORTS_PATH: "./final-test-reports/"
-      FINAL_TEST_REPORT_PATH_JSON: "./final-test-reports/final-test-report.json"
-      FINAL_TEST_REPORT_PATH_MARKDOWN: "./final-test-reports/final-test-report.md"
+      FINAL_TEST_REPORTS_FOLDER: "./final-test-reports/"
+      FINAL_TEST_REPORT_FILEPATH_JSON: "./final-test-reports/final-test-report.json"
+      FINAL_TEST_REPORT_FILEPATH_MARKDOWN: "./final-test-reports/final-test-report.md"
     steps:
       - name: Check out code
         uses: actions/checkout@v2.4.0
@@ -647,54 +647,93 @@ jobs:
         uses: actions/github-script@v5.0.0
         env:
           TEST_REPORTS_PATH: ${{ env.TEST_REPORTS_PATH }}
-          FINAL_TEST_REPORTS_PATH: ${{ env.FINAL_TEST_REPORTS_PATH }}
-          FINAL_TEST_REPORT_PATH: ${{ env.FINAL_TEST_REPORT_PATH_JSON }}
+          FINAL_TEST_REPORTS_FOLDER: ${{ env.FINAL_TEST_REPORTS_FOLDER }}
+          FINAL_TEST_REPORT_FILEPATH_JSON: ${{ env.FINAL_TEST_REPORT_FILEPATH_JSON }}
         with:
           script: |
             ndJsonParser = require('ndjson-parse');
             fs = require('fs');
             
-            const {TEST_REPORTS_PATH, FINAL_TEST_REPORT_PATH, FINAL_TEST_REPORTS_PATH} = process.env
+            const {TEST_REPORTS_PATH, FINAL_TEST_REPORT_FILEPATH_JSON, FINAL_TEST_REPORTS_FOLDER} = process.env
             const jsonReportData = [];
             
-            fileList = fs.readdirSync(TEST_REPORTS_PATH);
-            fileList.forEach(fileName => {
-              console.log(`Reading file: ${fileName}`);
-              const file = fs.readFileSync(TEST_REPORTS_PATH + fileName, {encoding:'utf8', flag:'r'});
-              const data = ndJsonParser(file);
-              jsonReportData.push(data);
+            const fileList = fs.readdirSync(TEST_REPORTS_PATH);
+            fileList.forEach(fileName => {1
+                console.log(`Reading file: ${fileName}`);
+                const platformReportFile = fs.readFileSync(TEST_REPORTS_PATH + fileName, {encoding:'utf8', flag:'r'});
+                const platformTestReportRaw = ndJsonParser(platformReportFile);
+                
+                platformTestReportRaw.forEach(platformTestResult => {
+                    if(platformTestResult.test.includes("/")) {
+                        jsonReportData.push(platformTestResult);
+                    }
+                });
+            });
+            
+            const testResultMap = {};
+            
+            jsonReportData.forEach(testResult => {
+                const trimmedTestResult = { ...testResult, test: testResult.test.split("/")[1] }
+                
+                // If this is a new testcase the result list needs to be created first
+                if (!(trimmedTestResult.test in testResultMap)) {
+                    testResultMap[trimmedTestResult.test] = [];
+                }
+                
+                // Add to result list
+                testResultMap[trimmedTestResult.test].push(trimmedTestResult)
             });
             
             const finalTestReport = [];
+            const allPlatforms = [];
             
-            jsonReportData[0].forEach((testResult, index) => {
-              let finalTestResult = {};
-              jsonReportData.forEach(platformReport => {
-                Object.assign(finalTestResult, platformReport[index]);
-              });
-              finalTestReport.push(finalTestResult);
+            // Create properly formatted final test report
+            Object.entries(testResultMap).forEach(([test, testResults]) => {
+                const finalResult = {};
+                finalResult.test = test;
+                testResults.forEach(result => {
+                    const {test, ...results} = result;
+                    Object.assign(finalResult, results);
+                    
+                    const currentPlatform = Object.keys(results)[0];
+                    if(!allPlatforms.includes(currentPlatform)) {
+                        allPlatforms.push(currentPlatform);
+                    }
+                });
+                finalTestReport.push(finalResult);
             });
             
-            fs.mkdirSync(FINAL_TEST_REPORTS_PATH);
-            fs.writeFileSync(FINAL_TEST_REPORT_PATH, JSON.stringify(finalTestReport));
+            // Fill in platforms where a test was not executed
+            finalTestReport.forEach(testResult => {
+                allPlatforms.forEach(platform => {
+                    if(!(platform in testResult)) {
+                        testResult[platform] = "skip";
+                    }
+                });
+            });
+            
+            if(!fs.existsSync(FINAL_TEST_REPORTS_FOLDER)) {
+                fs.mkdirSync(FINAL_TEST_REPORTS_FOLDER);
+            }
+            fs.writeFileSync(FINAL_TEST_REPORT_FILEPATH_JSON, JSON.stringify(finalTestReport));
 
       - name: Generate Markdown Test Report
         run: |
-          npx tablemark-cli@v2.0.0 "${{ env.FINAL_TEST_REPORT_PATH_JSON }}" > "${{ env.FINAL_TEST_REPORT_PATH_MARKDOWN }}" -N -c Test
+          npx tablemark-cli@v2.0.0 "${{ env.FINAL_TEST_REPORT_FILEPATH_JSON }}" > "${{ env.FINAL_TEST_REPORT_FILEPATH_MARKDOWN }}" -N -c Test
 
       - name: Upload final JSON test report as an artifact
         if: always()
         uses: actions/upload-artifact@v2
         with:
           name: final-test-report-json
-          path: ${{ env.FINAL_TEST_REPORT_PATH_JSON }}
+          path: ${{ env.FINAL_TEST_REPORT_FILEPATH_JSON }}
 
       - name: Upload final Markdown test report as an artifact
         if: always()
         uses: actions/upload-artifact@v2
         with:
           name: final-test-report-markdown
-          path: ${{ env.FINAL_TEST_REPORT_PATH_MARKDOWN }}
+          path: ${{ env.FINAL_TEST_REPORT_FILEPATH_MARKDOWN }}
 
       - name: Summarize Resource Usage
         id: print_resource_usage
