@@ -46,6 +46,16 @@ jobs:
             RUN_CONTINUOUS_DELIVERY_TEST: "false"
             BACKUP_RESTORE: "false"
             COLLECT_RESOURCE_LIMITS: "false"
+          - CLOUD_PROVIDER: "k3d-on-GHA"
+            PLATFORM_VERSION: "v4.4.6" # see https://github.com/rancher/k3d/releases
+            KUBECONFIG: ""
+            PLATFORM: "kubernetes"
+            KEPTN_SERVICE_TYPE: "NodePort"
+            RUN_AIRGAPPED_TEST: "true"
+            RUN_QUALITY_GATES_TEST: "false"
+            RUN_CONTINUOUS_DELIVERY_TEST: "false"
+            BACKUP_RESTORE: "false"
+            COLLECT_RESOURCE_LIMITS: "false"
     env:
       CLOUD_PROVIDER: ${{ matrix.CLOUD_PROVIDER }}
       PLATFORM: ${{ matrix.PLATFORM }}
@@ -55,6 +65,7 @@ jobs:
       KEPTN_SERVICE_TYPE: ${{ matrix.KEPTN_SERVICE_TYPE }}
       RUN_CONTINUOUS_DELIVERY_TEST: ${{ matrix.RUN_CONTINUOUS_DELIVERY_TEST }}
       RUN_AIRGAPPED_TEST: ${{ matrix.RUN_AIRGAPPED_TEST }}
+      AIRGAPPED_REGISTRY_URL: "k3d-container-registry.localhost:12345"
       REMOTE_EXECUTION_PLANE: ${{ matrix.REMOTE_EXECUTION_PLANE }}
       BACKUP_RESTORE: ${{ matrix.BACKUP_RESTORE }}
       RUN_QUALITY_GATES_TEST: ${{ matrix.RUN_QUALITY_GATES_TEST }}
@@ -215,7 +226,7 @@ jobs:
 
           # create registry and cluster
           k3d registry create container-registry.localhost --port 12345
-          k3d cluster create mykeptn --k3s-server-arg '--no-deploy=traefik' --agents 1 --registry-use k3d-container-registry.localhost:12345
+          k3d cluster create mykeptn --k3s-server-arg '--no-deploy=traefik' --agents 1 --registry-use "$AIRGAPPED_REGISTRY_URL"
           kubectl config use-context k3d-mykeptn
 
       - name: Install and start GKE cluster
@@ -257,7 +268,7 @@ jobs:
           KEPTN_TAG: ${{ env.VERSION }}
         run: |
           # pull images and push it to the local k3d registry
-          installer/airgapped/pull_and_retag_images.sh "k3d-container-registry.localhost:12345/"
+          installer/airgapped/pull_and_retag_images.sh "$AIRGAPPED_REGISTRY_URL/"
 
       - name: Prevent egress traffic for airgapped system
         # this only prevents pods / containers from accessing services outside of the Kubernetes cluster, it does not
@@ -308,7 +319,7 @@ jobs:
           echo "::group::Keptn Installation Log"
           if [[ $RUN_AIRGAPPED_TEST == "true" ]]; then
             # Install Keptn via Helper Script
-            installer/airgapped/install_keptn.sh "k3d-container-registry.localhost:12345/" "http://0.0.0.0:8000/$HELM_CHART_NAME" "http://0.0.0.0:8000/$HELM_SERVICE_HELM_CHART_NAME" "http://0.0.0.0:8000/$JMETER_SERVICE_HELM_CHART_NAME"
+            installer/airgapped/install_keptn.sh "$AIRGAPPED_REGISTRY_URL/" "http://0.0.0.0:8000/$HELM_CHART_NAME" "http://0.0.0.0:8000/$HELM_SERVICE_HELM_CHART_NAME" "http://0.0.0.0:8000/$JMETER_SERVICE_HELM_CHART_NAME"
           else
             # Install Keptn via CLI
             keptn install --platform=${PLATFORM} --namespace=${KEPTN_NAMESPACE} --endpoint-service-type=${KEPTN_SERVICE_TYPE} \
@@ -483,8 +494,6 @@ jobs:
           UNLEASH_SERVICE_VERSION: "release-0.3.2"
           GOTESTSUM_FORMAT: "testname"
           GOTESTSUM_JSONFILE: ${{ env.TEST_REPORT_FOLDER }}/tests-${{ env.TEST_REPORT_FILENAME_SUFFIX }}
-          CLOUD_PROVIDER: ${{ env.CLOUD_PROVIDER }}
-          AIRGAPPED_REGISTRY_URL: "k3d-container-registry.localhost:12345"
         run: |
           cd test/go-tests
           
